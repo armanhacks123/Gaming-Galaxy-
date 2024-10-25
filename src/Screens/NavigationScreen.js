@@ -19,7 +19,6 @@ import ValorantMain from './Valorant/ValorantMain';
 import JobsMain from './Jobs/JobsMain';
 import Control from './Player/Goblin/Control';
 import LoginScreen from './User/LoginScreen';
-import SignUpScreen from './User/SignUpScreen';
 import HomeScreen from './HomeScreen';
 import Goblin from './Player/Goblin/Goblin';
 import AccountMain from './Account/AccountMain';
@@ -40,6 +39,8 @@ import PrivacyPolicy from './Account/PrivacyPolicy';
 import AboutScreen from './Account/About';
 import RankingScreen from './Account/RankingSystem';
 import PostContentScreen from './AdminAcess/PostContentScreen';
+import MainScreen from './User/MainScreen';
+import SignUpScreen from './User/SignUpScreen';
 
 const Stack = createNativeStackNavigator();
 const TopTab = createMaterialTopTabNavigator();
@@ -47,8 +48,9 @@ const BottomTab = createBottomTabNavigator();
 
 const AuthStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Main" component={MainScreen} />
     <Stack.Screen name="SignUp" component={SignUpScreen} />
+    <Stack.Screen name="Login" component={LoginScreen} />
   </Stack.Navigator>
 );
 

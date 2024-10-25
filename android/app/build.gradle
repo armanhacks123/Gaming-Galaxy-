@@ -130,7 +130,7 @@ android {
 dependencies {
 
 
-     implementation 'com.google.firebase:firebase-auth:21.0.1' // Use the latest version
+    implementation 'com.google.firebase:firebase-auth:21.0.1' // Use the latest version
     implementation 'com.google.android.gms:play-services-auth:19.0.0' // Use the latest version
 
     // The version of react-native is set by the React Native Gradle Plugin
@@ -144,6 +144,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth'
 
     implementation project(':react-native-view-shot')
+    
 
 
     if (hermesEnabled.toBoolean()) {

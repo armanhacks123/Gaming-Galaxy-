@@ -1,111 +1,153 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, ImageBackground, Dimensions, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, Dimensions } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import Entypo from 'react-native-vector-icons/Entypo';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import firestore from '@react-native-firebase/firestore'; // Import Firestore
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
-const { height } = Dimensions.get('window');
-const imageHeight = height * 0.4;
+// Get screen dimensions
+const { width, height } = Dimensions.get('window');
 
 const SignUpScreen = ({ navigation }) => {
-  
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
-  
-  const handleSignup = async () => {
+
+  const handleSignUp = async () => {
     try {
-      if (email.length > 0 && password.length > 0) {
-        if (!validateEmail(email)) {
-          Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      if (name.length > 0 && email.length > 0 && password.length > 0 && confirmPassword.length > 0) {
+        if (password.length < 6) {
+          Alert.alert('Weak Password', 'Password must be more than 6 characters.');
           return;
         }
-        if (!validatePassword(password)) {
-          Alert.alert('Short Password', 'Password should be at least 6 characters');
-          return;
+
+        if (password === confirmPassword) {
+          const isUserSignUp = await auth().createUserWithEmailAndPassword(email, password);
+          setMessage('');
+
+          await firestore().collection('users').doc(isUserSignUp.user.uid).set({
+            email: isUserSignUp.user.email,
+            name: name,
+            createdYear: new Date().getFullYear(),
+          });
+
+          Alert.alert('Success', 'Your account has been created successfully.');
+          navigation.navigate('home', {
+            email: isUserSignUp.user.email,
+            uid: isUserSignUp.user.uid,
+          });
+        } else {
+          Alert.alert('Password Mismatch', 'Passwords do not match.');
         }
-  
-        // Extract name from email
-        const name = email.split('@')[0];
-  
-        // Create user in Firebase Authentication
-        const { user } = await auth().createUserWithEmailAndPassword(email, password);
-  
-        // Store additional user data in Firestore
-        await firestore().collection('users').doc(user.uid).set({
-          email: user.email,
-          name: name,
-          createdYear: new Date().getFullYear(),
-        });
-  
-        // Navigate to login screen after successful sign-up
-        navigation.navigate('Login');
       } else {
         Alert.alert('Missing Information', 'Please fill in all required fields.');
       }
     } catch (err) {
+      console.log('Error code:', err.code);
       console.log(err);
+
       setMessage(err.message);
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          Alert.alert('Error', 'This email address is already in use.');
+          break;
+        case 'auth/invalid-email':
+          Alert.alert('Error', 'You entered an invalid email.');
+          break;
+        case 'auth/weak-password':
+          Alert.alert('Error', 'Password should be at least 6 characters.');
+          break;
+      }
     }
   };
-  
-  const validateEmail = (email) => {
-    // Regular expression for email validation
-    const re = /\S+@\S+\.\S+/;
-    return re.test(email);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      GoogleSignin.configure({
+        webClientId: 'YOUR_WEB_CLIENT_ID', // Replace with your webClientId from Firebase
+      });
+
+      const { idToken } = await GoogleSignin.signIn();
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const userCredential = await auth().signInWithCredential(googleCredential);
+
+      await firestore().collection('users').doc(userCredential.user.uid).set({
+        email: userCredential.user.email,
+        name: userCredential.user.displayName,
+        createdYear: new Date().getFullYear(),
+      });
+
+      Alert.alert('Success', 'You have signed in successfully with Google.');
+      navigation.navigate('home', {
+        email: userCredential.user.email,
+        uid: userCredential.user.uid,
+      });
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      Alert.alert('Error', 'Google sign-in failed. Please try again.');
+    }
   };
-  
-  const validatePassword = (password) => {
-    // Validate password length
-    return password.length >= 6;
-  };
-  
+
   return (
     <View style={styles.container}>
-      {/* Star Background */}
-      <View style={styles.starsContainer}>
-        <Text style={styles.star}>⭐️</Text>
-        <Text style={[styles.star, styles.star2]}>⭐️</Text>
-        <Text style={[styles.star, styles.star3]}>⭐️</Text>
-        <Text style={[styles.star, styles.star4]}>⭐️</Text>
-        <Text style={[styles.star, styles.star5]}>⭐️</Text>
-      </View>
       <View style={styles.imageContainer}>
-        <ImageBackground
-          source={{ uri: 'login1' }}
-          style={styles.backgroundImage}
+        <Image
+          source={{ uri: 'login1' }} // Replace with your image URI
+          style={styles.image}
         />
       </View>
+
       <View style={styles.inputContainer}>
         <TextInput
+          placeholder="Name"
+          placeholderTextColor="#9E9E9E"
           style={styles.input}
-          placeholder="Enter Your Email"
-          placeholderTextColor="white"
+          value={name}
+          onChangeText={value => setName(value)}
+        />
+        <TextInput
+          placeholder="Email Address"
+          placeholderTextColor="#9E9E9E"
+          style={styles.input}
           keyboardType="email-address"
           value={email}
           onChangeText={value => setEmail(value)}
         />
         <TextInput
+          placeholder="Password"
+          placeholderTextColor="#9E9E9E"
+          secureTextEntry={true}
           style={styles.input}
-          placeholder="Enter Your Password"
-          placeholderTextColor="white"
           value={password}
           onChangeText={value => setPassword(value)}
-          secureTextEntry={true}
         />
-        <TouchableOpacity
-          style={styles.singupButton}
-          onPress={handleSignup} // Changed to handleSignup for sign-up functionality
-        >
-          <Text style={styles.singupText}>Sign Up</Text>
+        <TextInput
+          placeholder="Confirm Password"
+          placeholderTextColor="#9E9E9E"
+          secureTextEntry={true}
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={value => setConfirmPassword(value)}
+        />
+      </View>
+
+      <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
+        <Text style={styles.signUpButtonText}>Sign Up</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.orText}>Or</Text>
+      <View style={styles.socialContainer}>
+        <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
+          <Icon name="google" size={30} color="#DB4437" />
         </TouchableOpacity>
-        <Text style={{ color: 'red', textAlign: 'center', marginTop: 10 }}>{message}</Text>
-        <TouchableOpacity
-          style={styles.signup}
-          onPress={() => {
-            navigation.navigate('Login'); // Navigate to Login screen if already have an account
-          }}
-        >
-          <Text style={{ color: 'white', textAlign: 'center', marginTop: 10 }}>Login</Text>
+        <TouchableOpacity style={styles.socialButton}>
+          <Entypo name="google-play" size={30} color="#34A853" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.socialButton}>
+          <Icon name="facebook" size={30} color="#3b5998" />
         </TouchableOpacity>
       </View>
     </View>
@@ -115,92 +157,74 @@ const SignUpScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1d', // Dark background color
-  },
-  starsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    zIndex: 0,
-  },
-  star: {
-    position: 'absolute',
-    top: '13%',
-    left: '20%',
-    fontSize: 22,
-    color: '#fff',
-  },
-  star2: {
-    top: '32%',
-    left: '50%',
-    fontSize: 17,
-    color: '#fff',
-  },
-  star3: {
-    top: '50%',
-    left: '70%',
-    fontSize: 18,
-    color: '#fff',
-  },
-  star4: {
-    top: '20%',
-    left: '90%',
-    fontSize: 14,
-    color: '#fff',
-  },
-  star5: {
-    top: '40%',
-    left: '3%',
-    fontSize: 20,
-    color: '#fff',
+    backgroundColor: '#e7e7fc',
+    paddingHorizontal: width * 0.05, // 5% padding
+    paddingVertical: height * 0.05, // 5% padding
   },
   imageContainer: {
-    marginTop: 80,
-    width: '100%',
-    height: imageHeight,
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1, // Ensure main content is on top of stars
+    marginBottom: height * 0.02, // 2% margin
   },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
+  image: {
+    width: width * 0.3, // 30% of screen width
+    height: width * 0.3, // 30% of screen width
+    borderRadius: 30,
+    resizeMode: 'contain',
   },
   inputContainer: {
-    width: '90%',
-    marginTop: 40,
-    alignSelf: 'center', // Center the input container horizontally
-    zIndex: 1, // Ensure main content is on top of stars
+    marginTop: height * 0.02, // 2% margin
+    marginBottom: height * 0.02, // 2% margin
   },
   input: {
-    height: 40,
-    borderColor: '#39ff14', // Neon green color for the border
+    backgroundColor: '#fff',
+    padding: height * 0.02, // 2% padding
+    borderRadius: 10,
+    marginVertical: height * 0.01, // 1% margin
+    borderColor: '#F7B500',
     borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 10,
-    backgroundColor: '#2a2a2d', // Darker input background for a cohesive look
-    color: 'white', // Text color to contrast with the dark background
-    marginBottom: 10,
   },
-  singupButton: {
-    backgroundColor: '#007bff', // Blue background for the button
-    borderRadius: 5,
-    height: 40,
-    justifyContent: 'center',
+  signUpButton: {
+    backgroundColor: '#F7B500',
+    padding: height * 0.02, // 2% padding
+    borderRadius: 10,
     alignItems: 'center',
+    marginVertical: height * 0.02, // 2% margin
   },
-  singupText: {
-    color: 'white', // White text color for the button text
-    fontSize: 16,
+  signUpButtonText: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  signup: {
-    marginTop: 10,
+  orText: {
+    textAlign: 'center',
+    marginVertical: height * 0.02, // 2% margin
+    color: '#6F6F6F',
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: height * 0.02, // 2% margin
+  },
+  socialButton: {
+    backgroundColor: '#fff',
+    padding: height * 0.01, // 1% padding
+    borderRadius: 50,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: width * 0.15, // 15% of screen width
+    height: width * 0.15, // 15% of screen width
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  registerText: {
+    textAlign: 'center',
+    color: '#6F6F6F',
+  },
+  loginText: {
+    color: '#F7B500',
   },
 });
 

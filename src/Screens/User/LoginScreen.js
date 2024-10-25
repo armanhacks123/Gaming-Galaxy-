@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, ImageBackground, Dimensions, TouchableOpacity, Text, Alert } from 'react-native';
-import auth from '@react-native-firebase/auth';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, Dimensions } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import Entypo from 'react-native-vector-icons/Entypo';
+import auth from '@react-native-firebase/auth'; 
 
-const { height } = Dimensions.get('window');
-const imageHeight = height * 0.4;
+const { width, height } = Dimensions.get('window');
 
-const LoginScreen = () => {
+const scaleFont = (size) => {
+  const scale = width / 320; // Based on iPhone 5's width
+  return Math.round(size * scale);
+};
+
+const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-
-  const navigation = useNavigation();
 
   const handleLogin = async () => {
     try {
@@ -49,53 +52,73 @@ const LoginScreen = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (email.length > 0) {
+      try {
+        await auth().sendPasswordResetEmail(email);
+        Alert.alert('Password Reset', 'A password reset link has been sent to your email.');
+      } catch (error) {
+        console.log('Error sending password reset email:', error);
+        Alert.alert('Error', 'Unable to send password reset email. Please check your email address.');
+      }
+    } else {
+      Alert.alert('Missing Information', 'Please enter your email address.');
+    }
+  };
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      // Handle orientation change if needed
+    });
+
+    return () => subscription?.remove(); // Cleanup the listener
+  }, []);
+
   return (
     <View style={styles.container}>
-      {/* Star Background */}
-      <View style={styles.starsContainer}>
-        <Text style={styles.star}>⭐️</Text>
-        <Text style={[styles.star, styles.star2]}>⭐️</Text>
-        <Text style={[styles.star, styles.star3]}>⭐️</Text>
-        <Text style={[styles.star, styles.star4]}>⭐️</Text>
-        <Text style={[styles.star, styles.star5]}>⭐️</Text>
-      </View>
       <View style={styles.imageContainer}>
-        <ImageBackground
-          source={{ uri: 'login1' }}
-          style={styles.backgroundImage}
+        <Image
+          source={{ uri: 'login1' }} 
+          style={styles.image}
         />
       </View>
+      
       <View style={styles.inputContainer}>
         <TextInput
+          placeholder="Email Address"
+          placeholderTextColor="#9E9E9E"
           style={styles.input}
-          placeholder="Enter Your Email"
-          placeholderTextColor="white"
           keyboardType="email-address"
           value={email}
           onChangeText={value => setEmail(value)}
         />
         <TextInput
+          placeholder="Password"
+          placeholderTextColor="#9E9E9E"
+          secureTextEntry={true}
           style={styles.input}
-          placeholder="Enter Your Password"
-          placeholderTextColor="white"
           value={password}
           onChangeText={value => setPassword(value)}
-          secureTextEntry={true}
         />
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleLogin} // Call handleLogin on button press
-        >
-          <Text style={styles.loginText}>Login</Text>
+        <TouchableOpacity onPress={handleForgotPassword}>
+          <Text style={styles.forgotPassword}>Forgot Password?</Text>
         </TouchableOpacity>
-        <Text style={{ color: 'red', textAlign: 'center', marginTop: 10 }}>{message}</Text>
-        <TouchableOpacity
-          style={styles.signup}
-          onPress={() => {
-            navigation.navigate('SignUp'); // Navigate to SignUp screen
-          }}
-        >
-          <Text style={{ color: 'white', textAlign: 'center', marginTop: 10 }}>Create Account</Text>
+      </View>
+      
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <Text style={styles.loginButtonText}>Login</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.orText}>Or</Text>
+      <View style={styles.socialContainer}>
+        <TouchableOpacity style={styles.socialButton}>
+          <Icon name="google" size={30} color="#DB4437" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.socialButton}>
+          <Entypo name="google-play" size={30} color="#34A853" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.socialButton}>
+          <Icon name="facebook" size={30} color="#3b5998" />
         </TouchableOpacity>
       </View>
     </View>
@@ -105,92 +128,79 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1d', // Dark background color
-  },
-  starsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    zIndex: 0,
-  },
-  star: {
-    position: 'absolute',
-    top: '13%',
-    left: '20%',
-    fontSize: 22,
-    color: '#fff',
-  },
-  star2: {
-    top: '32%',
-    left: '50%',
-    fontSize: 17,
-    color: '#fff',
-  },
-  star3: {
-    top: '50%',
-    left: '70%',
-    fontSize: 18,
-    color: '#fff',
-  },
-  star4: {
-    top: '20%',
-    left: '90%',
-    fontSize: 14,
-    color: '#fff',
-  },
-  star5: {
-    top: '40%',
-    left: '3%',
-    fontSize: 20,
-    color: '#fff',
+    backgroundColor: '#e7e7fc',
+    paddingHorizontal: width * 0.05,  // 5% of screen width
+    paddingVertical: height * 0.05,   // 5% of screen height
   },
   imageContainer: {
-    marginTop: 80,
-    width: '100%',
-    height: imageHeight,
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1, // Ensure main content is on top of stars
+    marginBottom: height * 0.02,      // 2% of screen height
   },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
+  image: {
+    width: width * 0.35,              // 35% of screen width
+    height: width * 0.35,             // Maintain aspect ratio
+    borderRadius: 30,
+    resizeMode: 'contain',
   },
   inputContainer: {
-    width: '90%',
-    marginTop: 40,
-    alignSelf: 'center', // Center the input container horizontally
-    zIndex: 1, // Ensure main content is on top of stars
+    marginTop: height * 0.05,         // 5% of screen height
+    marginBottom: height * 0.02,
   },
   input: {
-    height: 40,
-    borderColor: '#39ff14', // Neon green color for the border
+    backgroundColor: '#fff',
+    padding: width * 0.04,            // 4% of screen width
+    borderRadius: 10,
+    marginVertical: height * 0.01,    // 1% of screen height
+    borderColor: '#F7B500',
     borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 10,
-    backgroundColor: '#2a2a2d', // Darker input background for a cohesive look
-    color: 'white', // Text color to contrast with the dark background
-    marginBottom: 10,
+  },
+  forgotPassword: {
+    color: '#F7B500',
+    alignSelf: 'flex-end',
+    marginTop: height * 0.01,         // 1% of screen height
   },
   loginButton: {
-    backgroundColor: '#007bff', // Blue background for the button
-    borderRadius: 5,
-    height: 40,
-    justifyContent: 'center',
+    backgroundColor: '#F7B500',
+    padding: height * 0.02,            // 2% of screen height
+    borderRadius: 10,
     alignItems: 'center',
+    marginVertical: height * 0.03,     // 3% of screen height
   },
-  loginText: {
-    color: 'white', // White text color for the button text
-    fontSize: 16,
+  loginButtonText: {
+    color: '#fff',
+    fontSize: scaleFont(18),           // Use the utility function for responsive text
     fontWeight: 'bold',
   },
-  signup: {
-    marginTop: 10,
+  orText: {
+    textAlign: 'center',
+    marginVertical: height * 0.02,     // 2% of screen height
+    color: '#6F6F6F',
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: height * 0.02,       // 2% of screen height
+  },
+  socialButton: {
+    backgroundColor: '#fff',
+    padding: width * 0.03,             // 3% of screen width
+    borderRadius: 50,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: width * 0.15,               // 15% of screen width
+    height: width * 0.15,              // Maintain aspect ratio
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  registerText: {
+    textAlign: 'center',
+    color: '#6F6F6F',
+  },
+  loginText: {
+    color: '#F7B500',
   },
 });
 
